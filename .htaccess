@@ -1,0 +1,19 @@
+# Protect sensitive files from web access
+<FilesMatch "^\.env$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect data directory
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^data/ - [F,L]
+</IfModule>
+
+# Block access to class files directly
+<FilesMatch "\.php$">
+    <If "%{REQUEST_URI} =~ m#/classes/#">
+        Order allow,deny
+        Deny from all
+    </If>
+</FilesMatch>
