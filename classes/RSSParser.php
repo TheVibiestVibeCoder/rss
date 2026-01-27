@@ -130,6 +130,12 @@ class RSSParser
 
     private function sendEmail(array $allItems): bool
     {
+        // Get recipients from emails.json, fallback to config
+        $recipients = $this->manager->getEmails();
+        if (empty($recipients)) {
+            $recipients = [$this->config['email']['to']];
+        }
+
         $totalItems = array_sum(array_map('count', $allItems));
         $feedCount = count($allItems);
 
@@ -156,7 +162,14 @@ class RSSParser
         $body .= $htmlBody . "\r\n\r\n";
         $body .= "--{$boundary}--";
 
-        return mail($this->config['email']['to'], $subject, $body, $headers);
+        // Send to all recipients
+        $success = true;
+        foreach ($recipients as $recipient) {
+            if (!mail($recipient, $subject, $body, $headers)) {
+                $success = false;
+            }
+        }
+        return $success;
     }
 
     private function buildHtmlEmail(array $allItems): string

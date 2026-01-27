@@ -1,16 +1,18 @@
 <?php
 /**
- * FeedManager - Handles all feed storage operations
+ * FeedManager - Handles all feed and email storage operations
  */
 class FeedManager
 {
     private string $feedsFile;
     private string $lastCheckFile;
+    private string $emailsFile;
 
     public function __construct(array $config)
     {
         $this->feedsFile = $config['feeds_file'];
         $this->lastCheckFile = $config['last_check_file'];
+        $this->emailsFile = dirname($config['feeds_file']) . '/emails.json';
         $this->initFiles();
     }
 
@@ -27,7 +29,53 @@ class FeedManager
         if (!file_exists($this->lastCheckFile)) {
             file_put_contents($this->lastCheckFile, json_encode([], JSON_PRETTY_PRINT));
         }
+        if (!file_exists($this->emailsFile)) {
+            file_put_contents($this->emailsFile, json_encode([], JSON_PRETTY_PRINT));
+        }
     }
+
+    // ============ EMAIL METHODS ============
+
+    public function getEmails(): array
+    {
+        $content = file_get_contents($this->emailsFile);
+        return json_decode($content, true) ?: [];
+    }
+
+    public function addEmail(string $email): bool
+    {
+        $email = trim(strtolower($email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $emails = $this->getEmails();
+        if (in_array($email, $emails)) {
+            return false; // Already exists
+        }
+
+        $emails[] = $email;
+        file_put_contents($this->emailsFile, json_encode($emails, JSON_PRETTY_PRINT));
+        return true;
+    }
+
+    public function removeEmail(string $email): bool
+    {
+        $email = trim(strtolower($email));
+        $emails = $this->getEmails();
+        $key = array_search($email, $emails);
+
+        if ($key === false) {
+            return false;
+        }
+
+        unset($emails[$key]);
+        $emails = array_values($emails); // Re-index
+        file_put_contents($this->emailsFile, json_encode($emails, JSON_PRETTY_PRINT));
+        return true;
+    }
+
+    // ============ FEED METHODS ============
 
     public function getAll(): array
     {

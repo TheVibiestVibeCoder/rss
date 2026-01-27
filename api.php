@@ -2,13 +2,19 @@
 /**
  * RSS Feed Manager - REST API
  *
- * Endpoints:
+ * Feed Endpoints:
  *   GET    /api.php?action=list          - List all feeds
  *   POST   /api.php?action=add           - Add a new feed (name, url)
  *   POST   /api.php?action=remove        - Remove a feed (id)
  *   POST   /api.php?action=toggle        - Toggle feed active/inactive (id)
- *   POST   /api.php?action=update        - Update feed (id, name, url)
  *   POST   /api.php?action=check         - Check all feeds now
+ *
+ * Email Endpoints:
+ *   GET    /api.php?action=emails        - List all email recipients
+ *   POST   /api.php?action=add_email     - Add email recipient (email)
+ *   POST   /api.php?action=remove_email  - Remove email recipient (email)
+ *
+ * Auth Endpoints:
  *   POST   /api.php?action=login         - Authenticate (password)
  *   GET    /api.php?action=logout        - Logout
  *   GET    /api.php?action=status        - Check login status
@@ -168,8 +174,54 @@ switch ($action) {
         ]);
         break;
 
+    // Email management
+    case 'emails':
+        requireAuth();
+        $emails = $manager->getEmails();
+        jsonResponse([
+            'success' => true,
+            'emails' => $emails,
+            'count' => count($emails),
+        ]);
+        break;
+
+    case 'add_email':
+        requireAuth();
+        $email = trim($_POST['email'] ?? '');
+
+        if (empty($email)) {
+            jsonResponse(['error' => 'Email is required'], 400);
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            jsonResponse(['error' => 'Invalid email format'], 400);
+        }
+
+        if ($manager->addEmail($email)) {
+            jsonResponse(['success' => true, 'message' => 'Email added']);
+        } else {
+            jsonResponse(['error' => 'Email already exists or invalid'], 400);
+        }
+        break;
+
+    case 'remove_email':
+        requireAuth();
+        $email = trim($_POST['email'] ?? '');
+
+        if (empty($email)) {
+            jsonResponse(['error' => 'Email is required'], 400);
+        }
+
+        if ($manager->removeEmail($email)) {
+            jsonResponse(['success' => true, 'message' => 'Email removed']);
+        } else {
+            jsonResponse(['error' => 'Email not found'], 404);
+        }
+        break;
+
     default:
         jsonResponse(['error' => 'Invalid action', 'available_actions' => [
-            'status', 'login', 'logout', 'list', 'add', 'remove', 'toggle', 'update', 'check'
+            'status', 'login', 'logout', 'list', 'add', 'remove', 'toggle', 'check',
+            'emails', 'add_email', 'remove_email'
         ]], 400);
 }

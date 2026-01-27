@@ -413,6 +413,23 @@
                 </div>
             </div>
         </div>
+
+        <!-- Email Recipients -->
+        <div class="card">
+            <div class="card-title">Email Recipients (<span id="email-count">0</span>)</div>
+            <form id="add-email-form" style="margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="email" id="new-email" class="form-control" placeholder="Enter email address" required style="flex: 1;">
+                    <button type="submit" class="btn btn-primary">Add Email</button>
+                </div>
+            </form>
+            <div id="email-list" class="feed-list">
+                <div class="empty-state">
+                    <p>No email recipients. Add an email above to receive notifications.</p>
+                    <p style="font-size: 12px; margin-top: 10px;">If no emails are added, notifications go to the email in .env</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -420,7 +437,7 @@
 
         // API call helper
         async function api(action, data = {}) {
-            const isGet = ['status', 'logout', 'list'].includes(action);
+            const isGet = ['status', 'logout', 'list', 'emails'].includes(action);
             const url = isGet ? `${API}?action=${action}` : API;
 
             const options = {
@@ -448,6 +465,7 @@
                 if (result.authenticated) {
                     showApp();
                     loadFeeds();
+                    loadEmails();
                 } else {
                     showLogin();
                 }
@@ -473,6 +491,7 @@
                 if (result.success) {
                     showApp();
                     loadFeeds();
+                    loadEmails();
                 } else {
                     errorDiv.textContent = result.error || 'Login failed';
                     errorDiv.classList.remove('hidden');
@@ -651,6 +670,83 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ============ EMAIL MANAGEMENT ============
+
+        // Load emails
+        async function loadEmails() {
+            try {
+                const result = await api('emails');
+                if (result.success) {
+                    renderEmails(result.emails);
+                    document.getElementById('email-count').textContent = result.count;
+                }
+            } catch (e) {
+                console.error('Failed to load emails', e);
+            }
+        }
+
+        // Render emails
+        function renderEmails(emails) {
+            const container = document.getElementById('email-list');
+
+            if (emails.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No email recipients. Add an email above to receive notifications.</p>
+                        <p style="font-size: 12px; margin-top: 10px;">If no emails are added, notifications go to the email in .env</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = emails.map(email => `
+                <div class="feed-item" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>${escapeHtml(email)}</span>
+                    <button class="btn btn-danger btn-sm" onclick="removeEmail('${escapeHtml(email)}')">
+                        Remove
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Add email
+        document.getElementById('add-email-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('new-email').value.trim();
+
+            if (!email) return;
+
+            try {
+                const result = await api('add_email', { email });
+                if (result.success) {
+                    showNotification('Email added!', 'success');
+                    document.getElementById('new-email').value = '';
+                    loadEmails();
+                } else {
+                    showNotification(result.error || 'Failed to add email', 'error');
+                }
+            } catch (e) {
+                showNotification('Failed to add email', 'error');
+            }
+        });
+
+        // Remove email
+        async function removeEmail(email) {
+            if (!confirm(`Remove ${email} from recipients?`)) return;
+
+            try {
+                const result = await api('remove_email', { email });
+                if (result.success) {
+                    showNotification('Email removed', 'success');
+                    loadEmails();
+                } else {
+                    showNotification(result.error || 'Failed to remove email', 'error');
+                }
+            } catch (e) {
+                showNotification('Failed to remove email', 'error');
+            }
         }
 
         // Initialize
