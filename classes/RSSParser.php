@@ -215,130 +215,228 @@ class RSSParser
     private function buildHtmlEmail(array $allItems): string
     {
         $totalItems = array_sum(array_map('count', $allItems));
-
+        
+        // Agency-style Design
         $html = <<<HTML
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Feed Digest</title>
+    <style type="text/css">
+        /* Base Resets */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        
+        /* Design System */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 700px;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            width: 100% !important;
+            color: #1f2937;
+        }
+        
+        .wrapper {
+            width: 100%;
+            table-layout: fixed;
+            background-color: #f3f4f6;
+            padding-bottom: 60px;
+        }
+        
+        .main-container {
+            background-color: #ffffff;
             margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
+            width: 100%;
+            max-width: 600px;
+            border-spacing: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #1f2937;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 12px;
+            overflow: hidden;
         }
-        .container {
-            background: #fff;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+        /* Header */
+        .header-td {
+            padding: 40px 40px 30px 40px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #f3f4f6;
         }
-        .header {
-            border-bottom: 3px solid #3b82f6;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
+        .header-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #111827;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.025em;
         }
-        .header h1 {
-            color: #1e40af;
-            margin: 0 0 5px 0;
-            font-size: 22px;
-        }
-        .header .meta {
+        .header-meta {
+            font-size: 13px;
+            font-weight: 500;
             color: #6b7280;
-            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
-        .feed-section {
-            margin-bottom: 30px;
+        
+        /* Content */
+        .content-td {
+            padding: 0 40px;
         }
-        .feed-title {
-            color: #1e40af;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
+        
+        .feed-group {
+            margin-top: 35px;
+            margin-bottom: 10px;
+        }
+        
+        .feed-header {
+            font-size: 12px;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #f3f4f6;
+            display: inline-block;
+        }
+        
+        .article-item {
+            padding: 25px 0;
             border-bottom: 1px solid #e5e7eb;
         }
-        .article {
-            padding: 15px;
-            margin-bottom: 12px;
-            background: #f9fafb;
-            border-left: 3px solid #3b82f6;
-            border-radius: 4px;
+        .article-item:last-child {
+            border-bottom: none;
         }
+        
         .article-title {
-            font-weight: 600;
-            margin-bottom: 5px;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.4;
+            margin: 0 0 8px 0;
         }
         .article-title a {
-            color: #1e40af;
+            color: #111827;
             text-decoration: none;
+            transition: color 0.2s;
         }
         .article-title a:hover {
-            text-decoration: underline;
+            color: #2563eb;
         }
-        .article-date {
+        
+        .article-meta {
             font-size: 12px;
             color: #6b7280;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            display: block;
         }
-        .article-content {
-            font-size: 14px;
+        
+        .article-excerpt {
+            font-size: 15px;
+            line-height: 1.6;
             color: #4b5563;
+            margin: 0 0 15px 0;
         }
-        .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 1px solid #e5e7eb;
+        
+        .btn-read {
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .btn-read:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .footer-td {
+            padding: 30px 40px;
+            background-color: #f9fafb;
+            text-align: center;
+        }
+        .footer-text {
             font-size: 12px;
             color: #9ca3af;
-            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Mobile */
+        @media screen and (max-width: 600px) {
+            .wrapper { padding-bottom: 0; }
+            .main-container { width: 100% !important; border-radius: 0; box-shadow: none; }
+            .header-td { padding: 30px 20px; }
+            .content-td { padding: 0 20px; }
+            .footer-td { padding: 30px 20px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>RSS Feed Updates</h1>
-            <div class="meta">{$totalItems} new article(s) | Generated on {$this->formatDate()}</div>
-        </div>
+    <center class="wrapper">
+        <table class="main-container" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                <td class="header-td">
+                    <h1 class="header-title">Your Daily Briefing</h1>
+                    <div class="header-meta">
+                        {$totalItems} updates &middot; {$this->formatDate()}
+                    </div>
+                </td>
+            </tr>
+            
+            <tr>
+                <td class="content-td">
 HTML;
 
         foreach ($allItems as $feedName => $items) {
             $count = count($items);
             $feedNameSafe = htmlspecialchars($feedName);
+            
             $html .= <<<HTML
-        <div class="feed-section">
-            <div class="feed-title">{$feedNameSafe} ({$count} article(s))</div>
+                    <div class="feed-group">
+                        <div class="feed-header">{$feedNameSafe} <span style="color:#d1d5db;">/</span> {$count}</div>
 HTML;
 
             foreach ($items as $item) {
                 $title = htmlspecialchars($item['title']);
                 $link = htmlspecialchars($item['link']);
                 $date = htmlspecialchars($item['published']);
-                $content = strip_tags($item['content'], '<p><br><strong><em><b><i>');
+                // Use strip_tags but allow NO html in the excerpt for the clean design look
+                $content = strip_tags($item['content']);
+                if (strlen($content) > 280) {
+                    $content = substr($content, 0, 280) . '...';
+                }
 
                 $html .= <<<HTML
-            <div class="article">
-                <div class="article-title"><a href="{$link}">{$title}</a></div>
-                <div class="article-date">{$date}</div>
-                <div class="article-content">{$content}</div>
-            </div>
+                        <div class="article-item">
+                            <div class="article-meta">{$date}</div>
+                            <h2 class="article-title">
+                                <a href="{$link}" target="_blank">{$title}</a>
+                            </h2>
+                            <div class="article-excerpt">{$content}</div>
+                            <a href="{$link}" class="btn-read">Read Article &rarr;</a>
+                        </div>
 HTML;
             }
 
-            $html .= "        </div>\n";
+            $html .= "</div>\n";
         }
 
         $html .= <<<HTML
-        <div class="footer">
-            RSS Feed Manager | Automated email notification
-        </div>
-    </div>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="footer-td">
+                    <div class="footer-text">
+                        <strong>RSS Feed Manager</strong><br>
+                        Automated Delivery System
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </center>
 </body>
 </html>
 HTML;
