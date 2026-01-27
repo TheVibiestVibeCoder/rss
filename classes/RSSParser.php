@@ -425,7 +425,8 @@ HTML;
 HTML;
 
             foreach ($items as $item) {
-                $title = htmlspecialchars($item['title']);
+                // IMPORTANT FIX: strip_tags added to title to remove raw HTML like <b>FIMI</b>
+                $title = htmlspecialchars(strip_tags($item['title']));
                 $link = htmlspecialchars($item['link']);
                 $date = htmlspecialchars($item['published']);
                 
@@ -481,7 +482,7 @@ HTML;
             $text .= str_repeat("-", 50) . "\n\n";
 
             foreach ($items as $item) {
-                $text .= "* " . $item['title'] . "\n";
+                $text .= "* " . strip_tags($item['title']) . "\n";
                 $text .= "  Date: " . $item['published'] . "\n";
                 $text .= "  Link: " . $item['link'] . "\n";
                 $content = strip_tags($item['content']);
