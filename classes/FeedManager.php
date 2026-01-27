@@ -39,7 +39,24 @@ class FeedManager
     public function getEmails(): array
     {
         $content = file_get_contents($this->emailsFile);
-        return json_decode($content, true) ?: [];
+        $data = json_decode($content, true) ?: [];
+
+        // Migrate old format (simple array) to new format (object with subscriptions)
+        if (isset($data[0]) && is_string($data[0])) {
+            $migrated = [];
+            foreach ($data as $email) {
+                $migrated[$email] = ['subscribeAll' => true, 'feeds' => []];
+            }
+            $this->saveEmails($migrated);
+            return $migrated;
+        }
+
+        return $data;
+    }
+
+    public function getEmailList(): array
+    {
+        return array_keys($this->getEmails());
     }
 
     public function addEmail(string $email): bool
@@ -50,12 +67,15 @@ class FeedManager
         }
 
         $emails = $this->getEmails();
-        if (in_array($email, $emails)) {
+        if (isset($emails[$email])) {
             return false; // Already exists
         }
 
-        $emails[] = $email;
-        file_put_contents($this->emailsFile, json_encode($emails, JSON_PRETTY_PRINT));
+        $emails[$email] = [
+            'subscribeAll' => true,
+            'feeds' => [],
+        ];
+        $this->saveEmails($emails);
         return true;
     }
 
@@ -63,16 +83,51 @@ class FeedManager
     {
         $email = trim(strtolower($email));
         $emails = $this->getEmails();
-        $key = array_search($email, $emails);
 
-        if ($key === false) {
+        if (!isset($emails[$email])) {
             return false;
         }
 
-        unset($emails[$key]);
-        $emails = array_values($emails); // Re-index
-        file_put_contents($this->emailsFile, json_encode($emails, JSON_PRETTY_PRINT));
+        unset($emails[$email]);
+        $this->saveEmails($emails);
         return true;
+    }
+
+    public function updateEmailSubscription(string $email, bool $subscribeAll, array $feeds = []): bool
+    {
+        $email = trim(strtolower($email));
+        $emails = $this->getEmails();
+
+        if (!isset($emails[$email])) {
+            return false;
+        }
+
+        $emails[$email] = [
+            'subscribeAll' => $subscribeAll,
+            'feeds' => $subscribeAll ? [] : $feeds,
+        ];
+        $this->saveEmails($emails);
+        return true;
+    }
+
+    public function getEmailSubscription(string $email): ?array
+    {
+        $email = trim(strtolower($email));
+        $emails = $this->getEmails();
+        return $emails[$email] ?? null;
+    }
+
+    public function isEmailSubscribedToFeed(string $email, string $feedId): bool
+    {
+        $sub = $this->getEmailSubscription($email);
+        if (!$sub) return false;
+        if ($sub['subscribeAll']) return true;
+        return in_array($feedId, $sub['feeds']);
+    }
+
+    private function saveEmails(array $emails): void
+    {
+        file_put_contents($this->emailsFile, json_encode($emails, JSON_PRETTY_PRINT));
     }
 
     // ============ FEED METHODS ============

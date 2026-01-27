@@ -10,9 +10,10 @@
  *   POST   /api.php?action=check         - Check all feeds now
  *
  * Email Endpoints:
- *   GET    /api.php?action=emails        - List all email recipients
- *   POST   /api.php?action=add_email     - Add email recipient (email)
- *   POST   /api.php?action=remove_email  - Remove email recipient (email)
+ *   GET    /api.php?action=emails             - List all email recipients with subscriptions
+ *   POST   /api.php?action=add_email          - Add email recipient (email)
+ *   POST   /api.php?action=remove_email       - Remove email recipient (email)
+ *   POST   /api.php?action=update_subscription - Update email subscription (email, subscribe_all, feeds[])
  *
  * Auth Endpoints:
  *   POST   /api.php?action=login         - Authenticate (password)
@@ -219,9 +220,30 @@ switch ($action) {
         }
         break;
 
+    case 'update_subscription':
+        requireAuth();
+        $email = trim($_POST['email'] ?? '');
+        $subscribeAll = ($_POST['subscribe_all'] ?? 'true') === 'true';
+        $feeds = isset($_POST['feeds']) ? json_decode($_POST['feeds'], true) : [];
+
+        if (empty($email)) {
+            jsonResponse(['error' => 'Email is required'], 400);
+        }
+
+        if (!is_array($feeds)) {
+            $feeds = [];
+        }
+
+        if ($manager->updateEmailSubscription($email, $subscribeAll, $feeds)) {
+            jsonResponse(['success' => true, 'message' => 'Subscription updated']);
+        } else {
+            jsonResponse(['error' => 'Email not found'], 404);
+        }
+        break;
+
     default:
         jsonResponse(['error' => 'Invalid action', 'available_actions' => [
             'status', 'login', 'logout', 'list', 'add', 'remove', 'toggle', 'check',
-            'emails', 'add_email', 'remove_email'
+            'emails', 'add_email', 'remove_email', 'update_subscription'
         ]], 400);
 }

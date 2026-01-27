@@ -20,7 +20,7 @@ class RSSParser
     public function checkAllFeeds(): array
     {
         $feeds = $this->manager->getAll();
-        $newItems = [];
+        $newItems = []; // feedId => ['name' => ..., 'items' => [...]]
         $checkedCount = 0;
         $errorCount = 0;
 
@@ -35,21 +35,24 @@ class RSSParser
             if ($items === false) {
                 $errorCount++;
             } elseif (!empty($items)) {
-                $newItems[$feedData['name']] = $items;
+                $newItems[$feedId] = [
+                    'name' => $feedData['name'],
+                    'items' => $items,
+                ];
             }
         }
 
-        $emailSent = false;
+        $emailsSent = 0;
         if (!empty($newItems)) {
-            $emailSent = $this->sendEmail($newItems);
+            $emailsSent = $this->sendEmails($newItems);
         }
 
         return [
             'checked'    => $checkedCount,
             'feeds_with_new' => count($newItems),
-            'total_items' => array_sum(array_map('count', $newItems)),
+            'total_items' => array_sum(array_map(fn($f) => count($f['items']), $newItems)),
             'errors'     => $errorCount,
-            'email_sent' => $emailSent,
+            'emails_sent' => $emailsSent,
         ];
     }
 
@@ -128,22 +131,66 @@ class RSSParser
         return $items;
     }
 
-    private function sendEmail(array $allItems): bool
+    /**
+     * Send emails to all recipients based on their subscriptions
+     * @param array $newItems feedId => ['name' => ..., 'items' => [...]]
+     * @return int Number of emails sent
+     */
+    private function sendEmails(array $newItems): int
     {
-        // Get recipients from emails.json, fallback to config
-        $recipients = $this->manager->getEmails();
-        if (empty($recipients)) {
-            $recipients = [$this->config['email']['to']];
+        $emailsData = $this->manager->getEmails();
+        $emailsSent = 0;
+
+        // If no emails configured, send to fallback from config
+        if (empty($emailsData)) {
+            $recipientItems = $this->formatItemsForEmail($newItems);
+            if ($this->sendSingleEmail($this->config['email']['to'], $recipientItems)) {
+                $emailsSent++;
+            }
+            return $emailsSent;
         }
 
-        $totalItems = array_sum(array_map('count', $allItems));
-        $feedCount = count($allItems);
+        // Send to each recipient based on their subscriptions
+        foreach ($emailsData as $email => $subscription) {
+            $recipientItems = [];
+
+            foreach ($newItems as $feedId => $feedData) {
+                // Check if this recipient is subscribed to this feed
+                if ($subscription['subscribeAll'] || in_array($feedId, $subscription['feeds'])) {
+                    $recipientItems[$feedData['name']] = $feedData['items'];
+                }
+            }
+
+            // Only send if there are items for this recipient
+            if (!empty($recipientItems)) {
+                if ($this->sendSingleEmail($email, $recipientItems)) {
+                    $emailsSent++;
+                }
+            }
+        }
+
+        return $emailsSent;
+    }
+
+    private function formatItemsForEmail(array $newItems): array
+    {
+        $formatted = [];
+        foreach ($newItems as $feedId => $feedData) {
+            $formatted[$feedData['name']] = $feedData['items'];
+        }
+        return $formatted;
+    }
+
+    private function sendSingleEmail(string $recipient, array $items): bool
+    {
+        $totalItems = array_sum(array_map('count', $items));
+        $feedCount = count($items);
 
         $subject = "RSS Alert: {$totalItems} new article(s) from {$feedCount} feed(s)";
-        $htmlBody = $this->buildHtmlEmail($allItems);
-        $textBody = $this->buildTextEmail($allItems);
+        $htmlBody = $this->buildHtmlEmail($items);
+        $textBody = $this->buildTextEmail($items);
 
-        $boundary = 'PHP-alt-' . md5(time());
+        $boundary = 'PHP-alt-' . md5(time() . $recipient);
 
         $headers = implode("\r\n", [
             "From: {$this->config['email']['from']}",
@@ -162,14 +209,7 @@ class RSSParser
         $body .= $htmlBody . "\r\n\r\n";
         $body .= "--{$boundary}--";
 
-        // Send to all recipients
-        $success = true;
-        foreach ($recipients as $recipient) {
-            if (!mail($recipient, $subject, $body, $headers)) {
-                $success = false;
-            }
-        }
-        return $success;
+        return mail($recipient, $subject, $body, $headers);
     }
 
     private function buildHtmlEmail(array $allItems): string
