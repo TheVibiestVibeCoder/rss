@@ -1,204 +1,131 @@
-# RSS to Email System 📰
+# RSS Feed Manager
 
-Ein komplettes System zum Verwalten und Überwachen von RSS Feeds mit automatischen Email-Benachrichtigungen.
+A clean, simple RSS feed monitoring system with email notifications.
 
 ## Features
 
-✨ **Schöne HTML-Emails** - Professionell formatierte Benachrichtigungen
-📋 **Web-Interface** - Einfache Verwaltung deiner Feeds
-🔐 **Passwort-Schutz** - Sicherer Admin-Bereich
-📊 **JSON Storage** - Alle Daten in einfachen JSON-Files
-⚡ **Test-Funktion** - Sofort prüfen ob alles funktioniert
-🎯 **Multi-Feed Support** - Beliebig viele Feeds gleichzeitig überwachen
+- **Simple Web Interface** - Add, remove, and manage RSS feeds
+- **Email Notifications** - Get notified when new articles appear
+- **RSS & Atom Support** - Works with both feed formats (including Google Alerts)
+- **JSON Storage** - No database required
+- **Password Protected** - Secure admin access
+- **Cron Ready** - Automated feed checking
+
+## File Structure
+
+```
+rss/
+├── index.html          # Web interface
+├── api.php             # REST API backend
+├── config.php          # Configuration file
+├── cron.php            # Cron job script
+├── setup.sh            # Setup script
+├── classes/
+│   ├── FeedManager.php # Feed management class
+│   └── RSSParser.php   # RSS parsing & email class
+└── data/
+    ├── feeds.json      # Your feeds (auto-created)
+    └── last_check.json # Last check times (auto-created)
+```
 
 ## Installation
 
-### 1. Files hochladen
+### 1. Upload Files
 
-Lade alle Dateien in ein Verzeichnis auf deinem Server hoch, z.B.:
+Upload all files to your web server:
 ```
 /home/USERNAME/public_html/rss/
 ```
 
-### 2. Permissions setzen
+### 2. Run Setup
 
 ```bash
-chmod 644 config.php
-chmod 644 parser.php
-chmod 644 admin.php
-chmod 666 feeds.json
-chmod 666 last_check.json
+chmod +x setup.sh
+./setup.sh
 ```
 
-Falls die JSON-Files noch nicht existieren, werden sie automatisch erstellt.
+### 3. Configure
 
-### 3. Passwort ändern
-
-Öffne `config.php` und ändere diese Zeile:
+Edit `config.php`:
 
 ```php
-define('ADMIN_PASSWORD', 'dein_sicheres_passwort_hier');
+return [
+    'email' => [
+        'to'   => 'your@email.com',
+        'from' => 'alerts@yourdomain.com',
+    ],
+    'admin_password' => 'your_secure_password',  // CHANGE THIS!
+    'cron_key' => 'your_secret_cron_key',        // CHANGE THIS!
+    'timezone' => 'Europe/Vienna',
+    // ...
+];
 ```
 
-**WICHTIG:** Wähle ein sicheres Passwort!
+### 4. Set Up Cron Job
 
-### 4. Email-Adresse konfigurieren
+Check feeds every 15 minutes:
 
-In `config.php` findest du auch:
-
-```php
-define('EMAIL_TO', 'markus@disinfoconsulting.eu');
-define('EMAIL_FROM', 'alerts@rss.markusschwinghammer.com');
+**Option A - PHP CLI:**
+```
+*/15 * * * * /usr/bin/php /path/to/rss/cron.php
 ```
 
-Passe diese an deine Bedürfnisse an.
-
-### 5. Cronjob einrichten
-
-**Via cPanel:**
-1. Gehe zu "Cron Jobs"
-2. Füge einen neuen Cronjob hinzu:
-
-**Alle 15 Minuten:**
+**Option B - HTTP (if CLI not available):**
 ```
-*/15 * * * * /usr/bin/php /home/USERNAME/public_html/rss/parser.php
+*/15 * * * * curl -s 'https://yourdomain.com/rss/cron.php?key=YOUR_CRON_KEY'
 ```
 
-**Jede Stunde:**
-```
-0 * * * * /usr/bin/php /home/USERNAME/public_html/rss/parser.php
-```
+## Usage
 
-**Oder mit curl:**
-```
-*/15 * * * * curl -s https://rss.markusschwinghammer.com/parser.php
-```
+1. Open `https://yourdomain.com/rss/` in your browser
+2. Log in with your admin password
+3. Add RSS feed URLs with a name
+4. Wait for the cron job or click "Check Feeds Now"
 
-## Verwendung
+## API Endpoints
 
-### Admin-Interface
+| Action | Method | Parameters |
+|--------|--------|------------|
+| `status` | GET | - |
+| `login` | POST | password |
+| `logout` | GET | - |
+| `list` | GET | - |
+| `add` | POST | name, url |
+| `remove` | POST | id |
+| `toggle` | POST | id |
+| `update` | POST | id, name, url |
+| `check` | POST | - |
 
-1. Öffne im Browser: `https://rss.markusschwinghammer.com/admin.php`
-2. Login mit deinem Passwort
-3. Füge RSS Feeds hinzu mit Name und URL
-
-### Feed URLs finden
+## Finding RSS Feed URLs
 
 **Google Alerts:**
-1. Gehe zu https://www.google.com/alerts
-2. Erstelle einen Alert
-3. Klicke auf das Zahnrad-Symbol → "RSS Feed"
-4. Kopiere die URL (Format: `https://www.google.com/alerts/feeds/...`)
+1. Go to https://www.google.com/alerts
+2. Create an alert
+3. Click gear icon → "RSS Feed"
+4. Copy the URL
 
-**Andere RSS Feeds:**
-- Meistens am Ende der URL: `/feed` oder `/rss`
-- Oder im HTML-Code: `<link rel="alternate" type="application/rss+xml"`
-- Tools wie https://rss.app/ können Feeds von Websites extrahieren
-
-### Feeds verwalten
-
-- **Pausieren:** Feed bleibt gespeichert, wird aber nicht gecheckt
-- **Aktivieren:** Feed wird wieder überwacht
-- **Löschen:** Feed wird komplett entfernt
-- **Test Run:** Sofort alle Feeds checken (ohne auf Cronjob zu warten)
-
-## Email-Format
-
-Deine Emails enthalten:
-
-- 📰 **Header** mit Zeitstempel
-- 📋 **Feed-Sections** gruppiert nach Feed-Name
-- 📄 **Artikel** mit:
-  - Titel (klickbar)
-  - Veröffentlichungsdatum
-  - Content/Beschreibung
-- ✉️ **Text-Version** als Fallback
+**Most Websites:**
+- Try adding `/feed`, `/rss`, or `/atom.xml` to the URL
+- Look for RSS icon in the browser address bar
+- Check page source for `<link rel="alternate" type="application/rss+xml"`
 
 ## Troubleshooting
 
-### Keine Emails erhalten?
+**No emails?**
+- Check spam folder
+- Test PHP mail() function
+- Verify cron job is running
 
-1. **Test-Run im Admin-Interface** - Siehst du neue Artikel?
-2. **Spam-Ordner** checken
-3. **PHP mail() Funktion** testen:
-   ```php
-   mail('deine@email.com', 'Test', 'Test-Mail');
-   ```
-4. **Cronjob** läuft? In cPanel unter "Cron Jobs" → "Current Cron Jobs"
+**Feeds not updating?**
+- Verify the feed URL works in your browser
+- Check error logs
+- Ensure data/ directory is writable
 
-### Feeds werden nicht erkannt?
-
-- Prüfe ob die URL wirklich ein RSS/Atom Feed ist (im Browser öffnen)
-- Manche Feeds brauchen User-Agent Header
-- Check die Error-Logs in cPanel
-
-### Permission Errors?
-
+**Permission errors?**
 ```bash
-chmod 777 feeds.json
-chmod 777 last_check.json
+chmod 666 data/feeds.json data/last_check.json
 ```
 
-## Datei-Struktur
+## License
 
-```
-rss/
-├── config.php          # Konfiguration & FeedManager Class
-├── parser.php          # RSS Parser & Email Sender
-├── admin.php           # Web-Interface
-├── feeds.json          # Deine Feed-Liste (auto-generiert)
-├── last_check.json     # Timestamps (auto-generiert)
-└── README.md           # Diese Datei
-```
-
-## Advanced: Mehrere Email-Adressen
-
-In `parser.php` kannst du die `sendEmail()` Funktion anpassen:
-
-```php
-$recipients = [
-    'markus@disinfoconsulting.eu',
-    'team@disinfoconsulting.eu'
-];
-
-foreach ($recipients as $recipient) {
-    mail($recipient, $subject, $body, $headers);
-}
-```
-
-## Advanced: Feed-spezifische Einstellungen
-
-Du kannst in `feeds.json` zusätzliche Parameter hinzufügen:
-
-```json
-{
-  "abc123": {
-    "name": "Important Feed",
-    "url": "https://...",
-    "priority": "high",
-    "notify_immediately": true
-  }
-}
-```
-
-Dann in `parser.php` entsprechend anpassen.
-
-## Support
-
-Bei Fragen oder Problemen:
-- Check die Error-Logs: cPanel → "Errors"
-- Test die einzelnen Komponenten separat
-- Prüfe ob PHP mail() am Server funktioniert
-
-## Nächste Schritte
-
-Mögliche Erweiterungen:
-- [ ] Slack/Discord Notifications
-- [ ] Email-Digest (nur 1x täglich alle Artikel)
-- [ ] Filter/Keywords pro Feed
-- [ ] Webhook Support
-- [ ] Database statt JSON (bei vielen Feeds)
-
----
-
-**Viel Erfolg mit deinem RSS Monitoring System! 🚀**
+MIT License - Use freely for personal or commercial projects.
