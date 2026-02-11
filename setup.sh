@@ -1,44 +1,65 @@
 #!/bin/bash
+#
+# RSS Feed Manager - Setup Script
+#
+# Run this script after uploading files to your server.
+#
 
-# Quick Setup Script für RSS to Email System
-# Führe dieses Script im Upload-Verzeichnis aus
-
-echo "🚀 RSS to Email System - Quick Setup"
-echo "======================================"
+echo "=========================================="
+echo "  RSS Feed Manager - Setup"
+echo "=========================================="
 echo ""
 
-# Erstelle leere JSON Files falls nicht vorhanden
-if [ ! -f feeds.json ]; then
-    echo "[]" > feeds.json
-    echo "✓ feeds.json erstellt"
+# Get the directory where this script is located
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$DIR"
+
+# Create data directory
+echo "Creating data directory..."
+mkdir -p data
+
+# Initialize JSON files
+if [ ! -f data/feeds.json ]; then
+    echo "[]" > data/feeds.json
+    echo "  Created data/feeds.json"
 fi
 
-if [ ! -f last_check.json ]; then
-    echo "{}" > last_check.json
-    echo "✓ last_check.json erstellt"
+if [ ! -f data/last_check.json ]; then
+    echo "{}" > data/last_check.json
+    echo "  Created data/last_check.json"
 fi
 
-# Setze Permissions
+# Set permissions
+echo ""
+echo "Setting permissions..."
 chmod 644 config.php
-chmod 644 parser.php
-chmod 644 admin.php
-chmod 644 README.md
-chmod 666 feeds.json
-chmod 666 last_check.json
+chmod 644 api.php
+chmod 644 index.html
+chmod 644 cron.php
+chmod 644 classes/*.php
+chmod 666 data/feeds.json
+chmod 666 data/last_check.json
+echo "  Done."
 
-echo "✓ Permissions gesetzt"
 echo ""
-echo "📝 Nächste Schritte:"
-echo "===================="
+echo "=========================================="
+echo "  Setup Complete!"
+echo "=========================================="
 echo ""
-echo "1. Öffne config.php und ändere:"
-echo "   - ADMIN_PASSWORD"
-echo "   - EMAIL_TO (falls nötig)"
-echo "   - EMAIL_FROM (falls nötig)"
+echo "Next steps:"
 echo ""
-echo "2. Richte einen Cronjob ein:"
-echo "   */15 * * * * /usr/bin/php $(pwd)/parser.php"
+echo "1. Edit config.php and change:"
+echo "   - admin_password (required!)"
+echo "   - email settings"
+echo "   - cron_key (if using HTTP cron)"
 echo ""
-echo "3. Öffne admin.php im Browser und füge Feeds hinzu"
+echo "2. Set up a cron job (every 15 minutes):"
 echo ""
-echo "✅ Setup abgeschlossen!"
+echo "   Option A - PHP CLI:"
+echo "   */15 * * * * /usr/bin/php ${DIR}/cron.php"
+echo ""
+echo "   Option B - Via HTTP (replace YOUR_KEY):"
+echo "   */15 * * * * curl -s 'https://yourdomain.com/rss/cron.php?key=YOUR_KEY'"
+echo ""
+echo "3. Open index.html in your browser to manage feeds."
+echo ""

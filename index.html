@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Feed Manager</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --danger: #ef4444;
+            --danger-dark: #dc2626;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-900);
+            min-height: 100vh;
+        }
+
+        /* Login Screen */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-box h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--gray-900);
+            font-size: 24px;
+        }
+
+        /* Main App */
+        .app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            color: var(--gray-900);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger-dark);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--gray-900);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+
+        /* Feed List */
+        .feed-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .feed-item {
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 18px;
+            transition: all 0.2s;
+        }
+
+        .feed-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+
+        .feed-item.inactive {
+            opacity: 0.6;
+            background: var(--gray-50);
+        }
+
+        .feed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .feed-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .feed-status {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .feed-status.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .feed-status.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .feed-url {
+            font-size: 13px;
+            color: var(--gray-500);
+            word-break: break-all;
+            margin-bottom: 8px;
+        }
+
+        .feed-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+        }
+
+        .feed-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--gray-500);
+        }
+
+        .empty-state svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Email subscription */
+        .email-item {
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 12px;
+        }
+
+        .email-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .email-address {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .email-subscription {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+        }
+
+        .subscription-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .subscription-badge.all {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .subscription-badge.custom {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .subscription-editor {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 12px;
+        }
+
+        .subscription-editor label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .subscription-editor label:hover {
+            background: var(--gray-100);
+        }
+
+        .subscription-editor input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .subscription-option-all {
+            font-weight: 600;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 8px;
+            padding-bottom: 12px;
+        }
+
+        .feed-checkboxes {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        .subscription-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .feed-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .feed-actions {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-container">
+        <div class="login-box">
+            <h1>RSS Feed Manager</h1>
+            <div id="login-error" class="alert alert-error hidden"></div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Enter password" required autofocus>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%">
+                    <span id="login-btn-text">Login</span>
+                    <span id="login-loading" class="loading hidden"></span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-screen" class="app-container hidden">
+        <div class="header">
+            <h1>RSS Feed Manager</h1>
+            <div class="header-actions">
+                <button id="check-btn" class="btn btn-secondary" onclick="checkFeeds()">
+                    Check Feeds Now
+                </button>
+                <button class="btn btn-danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div id="notification" class="alert hidden"></div>
+
+        <!-- Add Feed Form -->
+        <div class="card">
+            <div class="card-title">Add New Feed</div>
+            <form id="add-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="feed-name">Feed Name</label>
+                        <input type="text" id="feed-name" class="form-control" placeholder="e.g. Tech News" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="feed-url">RSS Feed URL</label>
+                        <input type="url" id="feed-url" class="form-control" placeholder="https://example.com/feed.xml" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Feed</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Feed List -->
+        <div class="card">
+            <div class="card-title">Your Feeds (<span id="feed-count">0</span>)</div>
+            <div id="feed-list" class="feed-list">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 11a9 9 0 0 1 9 9"/>
+                        <path d="M4 4a16 16 0 0 1 16 16"/>
+                        <circle cx="5" cy="19" r="1"/>
+                    </svg>
+                    <p>No feeds yet. Add your first RSS feed above!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Email Recipients -->
+        <div class="card">
+            <div class="card-title">Email Recipients (<span id="email-count">0</span>)</div>
+            <form id="add-email-form" style="margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="email" id="new-email" class="form-control" placeholder="Enter email address" required style="flex: 1;">
+                    <button type="submit" class="btn btn-primary">Add Email</button>
+                </div>
+            </form>
+            <div id="email-list" class="feed-list">
+                <div class="empty-state">
+                    <p>No email recipients. Add an email above to receive notifications.</p>
+                    <p style="font-size: 12px; margin-top: 10px;">If no emails are added, notifications go to the email in .env</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = 'api.php';
+
+        // API call helper
+        async function api(action, data = {}) {
+            const isGet = ['status', 'logout', 'list', 'emails'].includes(action);
+            const url = isGet ? `${API}?action=${action}` : API;
+
+            const options = {
+                method: isGet ? 'GET' : 'POST',
+                credentials: 'same-origin',
+            };
+
+            if (!isGet) {
+                const formData = new URLSearchParams();
+                formData.append('action', action);
+                for (const [key, value] of Object.entries(data)) {
+                    formData.append(key, value);
+                }
+                options.body = formData;
+            }
+
+            const response = await fetch(url, options);
+            return response.json();
+        }
+
+        // Check login status on load
+        async function checkAuth() {
+            try {
+                const result = await api('status');
+                if (result.authenticated) {
+                    showApp();
+                    loadFeeds();
+                    loadEmails();
+                } else {
+                    showLogin();
+                }
+            } catch (e) {
+                showLogin();
+            }
+        }
+
+        // Login
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('login-error');
+            const btnText = document.getElementById('login-btn-text');
+            const loading = document.getElementById('login-loading');
+
+            errorDiv.classList.add('hidden');
+            btnText.textContent = 'Logging in...';
+            loading.classList.remove('hidden');
+
+            try {
+                const result = await api('login', { password });
+                if (result.success) {
+                    showApp();
+                    loadFeeds();
+                    loadEmails();
+                } else {
+                    errorDiv.textContent = result.error || 'Login failed';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (e) {
+                errorDiv.textContent = 'Connection error';
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btnText.textContent = 'Login';
+                loading.classList.add('hidden');
+            }
+        });
+
+        // Logout
+        async function logout() {
+            await api('logout');
+            showLogin();
+            document.getElementById('password').value = '';
+        }
+
+        // Show/hide screens
+        function showLogin() {
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.add('hidden');
+        }
+
+        function showApp() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+        }
+
+        // Load feeds
+        async function loadFeeds() {
+            try {
+                const result = await api('list');
+                if (result.success) {
+                    currentFeeds = result.feeds; // Store for subscription editor
+                    renderFeeds(result.feeds);
+                    document.getElementById('feed-count').textContent = result.count;
+                }
+            } catch (e) {
+                showNotification('Failed to load feeds', 'error');
+            }
+        }
+
+        // Render feeds
+        function renderFeeds(feeds) {
+            const container = document.getElementById('feed-list');
+            const feedArray = Object.entries(feeds);
+
+            if (feedArray.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 11a9 9 0 0 1 9 9"/>
+                            <path d="M4 4a16 16 0 0 1 16 16"/>
+                            <circle cx="5" cy="19" r="1"/>
+                        </svg>
+                        <p>No feeds yet. Add your first RSS feed above!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = feedArray.map(([id, feed]) => `
+                <div class="feed-item ${feed.active ? '' : 'inactive'}" data-id="${id}">
+                    <div class="feed-header">
+                        <span class="feed-name">${escapeHtml(feed.name)}</span>
+                        <span class="feed-status ${feed.active ? 'active' : 'inactive'}">
+                            ${feed.active ? 'Active' : 'Paused'}
+                        </span>
+                    </div>
+                    <div class="feed-url">${escapeHtml(feed.url)}</div>
+                    <div class="feed-meta">Added: ${feed.added}</div>
+                    <div class="feed-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="toggleFeed('${id}')">
+                            ${feed.active ? 'Pause' : 'Activate'}
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="removeFeed('${id}')">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Add feed
+        document.getElementById('add-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('feed-name').value.trim();
+            const url = document.getElementById('feed-url').value.trim();
+
+            if (!name || !url) return;
+
+            try {
+                const result = await api('add', { name, url });
+                if (result.success) {
+                    showNotification('Feed added successfully!', 'success');
+                    document.getElementById('feed-name').value = '';
+                    document.getElementById('feed-url').value = '';
+                    loadFeeds();
+                } else {
+                    showNotification(result.error || 'Failed to add feed', 'error');
+                }
+            } catch (e) {
+                showNotification('Failed to add feed', 'error');
+            }
+        });
+
+        // Toggle feed
+        async function toggleFeed(id) {
+            try {
+                const result = await api('toggle', { id });
+                if (result.success) {
+                    loadFeeds();
+                } else {
+                    showNotification(result.error || 'Failed to toggle feed', 'error');
+                }
+            } catch (e) {
+                showNotification('Failed to toggle feed', 'error');
+            }
+        }
+
+        // Remove feed
+        async function removeFeed(id) {
+            if (!confirm('Are you sure you want to delete this feed?')) return;
+
+            try {
+                const result = await api('remove', { id });
+                if (result.success) {
+                    showNotification('Feed removed', 'success');
+                    loadFeeds();
+                } else {
+                    showNotification(result.error || 'Failed to remove feed', 'error');
+                }
+            } catch (e) {
+                showNotification('Failed to remove feed', 'error');
+            }
+        }
+
+        // Check feeds
+        async function checkFeeds() {
+            const btn = document.getElementById('check-btn');
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+
+            try {
+                const result = await api('check');
+                if (result.success) {
+                    const r = result.result;
+                    const emailInfo = r.emails_sent !== undefined ? `Emails sent: ${r.emails_sent}` : '';
+                    showNotification(
+                        `Checked ${r.checked} feed(s). Found ${r.total_items} new item(s). ${emailInfo}`,
+                        'info'
+                    );
+                } else {
+                    showNotification(result.error || 'Check failed', 'error');
+                }
+            } catch (e) {
+                showNotification('Failed to check feeds', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Check Feeds Now';
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const el = document.getElementById('notification');
+            el.textContent = message;
+            el.className = `alert alert-${type}`;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 4000);
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============ EMAIL MANAGEMENT ============
+
+        let currentFeeds = {}; // Store feeds for subscription editor
+        let emailsData = {};   // Store emails with subscriptions
+
+        // Load emails
+        async function loadEmails() {
+            try {
+                const result = await api('emails');
+                if (result.success) {
+                    emailsData = result.emails;
+                    renderEmails(result.emails);
+                    document.getElementById('email-count').textContent = result.count;
+                }
+            } catch (e) {
+                console.error('Failed to load emails', e);
+            }
+        }
+
+        // Render emails with subscription info
+        function renderEmails(emails) {
+            const container = document.getElementById('email-list');
+            const emailEntries = Object.entries(emails);
+
+            if (emailEntries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No email recipients. Add an email above to receive notifications.</p>
+                        <p style="font-size: 12px; margin-top: 10px;">If no emails are added, notifications go to the email in .env</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = emailEntries.map(([email, sub]) => {
+                const isAll = sub.subscribeAll;
+                const feedCount = sub.feeds ? sub.feeds.length : 0;
+                const badgeClass = isAll ? 'all' : 'custom';
+                const badgeText = isAll ? 'All Feeds' : `${feedCount} feed(s)`;
+
+                return `
+                <div class="email-item" id="email-${btoa(email)}">
+                    <div class="email-header">
+                        <span class="email-address">
+                            ${escapeHtml(email)}
+                            <span class="subscription-badge ${badgeClass}">${badgeText}</span>
+                        </span>
+                    </div>
+                    <div class="feed-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="toggleSubscriptionEditor('${escapeHtml(email)}')">
+                            Edit Subscriptions
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="removeEmail('${escapeHtml(email)}')">
+                            Remove
+                        </button>
+                    </div>
+                    <div id="sub-editor-${btoa(email)}" class="subscription-editor hidden"></div>
+                </div>
+            `}).join('');
+        }
+
+        // Toggle subscription editor
+        function toggleSubscriptionEditor(email) {
+            const editorId = `sub-editor-${btoa(email)}`;
+            const editor = document.getElementById(editorId);
+
+            if (!editor.classList.contains('hidden')) {
+                editor.classList.add('hidden');
+                return;
+            }
+
+            // Get current subscription
+            const sub = emailsData[email] || { subscribeAll: true, feeds: [] };
+            const feedEntries = Object.entries(currentFeeds);
+
+            let feedCheckboxes = feedEntries.map(([id, feed]) => {
+                const checked = sub.subscribeAll || (sub.feeds && sub.feeds.includes(id)) ? 'checked' : '';
+                return `
+                    <label>
+                        <input type="checkbox" class="feed-checkbox" value="${id}" ${checked} ${sub.subscribeAll ? 'disabled' : ''}>
+                        ${escapeHtml(feed.name)}
+                    </label>
+                `;
+            }).join('');
+
+            if (feedEntries.length === 0) {
+                feedCheckboxes = '<p style="color: var(--gray-500); padding: 8px;">No feeds available. Add feeds first.</p>';
+            }
+
+            editor.innerHTML = `
+                <div class="subscription-option-all">
+                    <label>
+                        <input type="checkbox" id="all-feeds-${btoa(email)}" ${sub.subscribeAll ? 'checked' : ''} onchange="toggleAllFeeds('${escapeHtml(email)}', this.checked)">
+                        <strong>Receive ALL feeds</strong>
+                    </label>
+                </div>
+                <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px;">Or select specific feeds:</div>
+                <div class="feed-checkboxes" id="feeds-list-${btoa(email)}">
+                    ${feedCheckboxes}
+                </div>
+                <div class="subscription-actions">
+                    <button class="btn btn-primary btn-sm" onclick="saveSubscription('${escapeHtml(email)}')">Save</button>
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('${editorId}').classList.add('hidden')">Cancel</button>
+                </div>
+            `;
+
+            editor.classList.remove('hidden');
+        }
+
+        // Toggle all feeds checkbox
+        function toggleAllFeeds(email, checked) {
+            const feedsList = document.getElementById(`feeds-list-${btoa(email)}`);
+            const checkboxes = feedsList.querySelectorAll('.feed-checkbox');
+            checkboxes.forEach(cb => {
+                cb.disabled = checked;
+                if (checked) cb.checked = true;
+            });
+        }
+
+        // Save subscription
+        async function saveSubscription(email) {
+            const allFeedsCheckbox = document.getElementById(`all-feeds-${btoa(email)}`);
+            const subscribeAll = allFeedsCheckbox.checked;
+
+            let feeds = [];
+            if (!subscribeAll) {
+                const feedsList = document.getElementById(`feeds-list-${btoa(email)}`);
+                const checkboxes = feedsList.querySelectorAll('.feed-checkbox:checked');
+                feeds = Array.from(checkboxes).map(cb => cb.value);
+            }
+
+            try {
+                const result = await api('update_subscription', {
+                    email: email,
+                    subscribe_all: subscribeAll ? 'true' : 'false',
+                    feeds: JSON.stringify(feeds)
+                });
+
+                if (result.success) {
+                    showNotification('Subscription updated!', 'success');
+                    loadEmails();
+                } else {
+                    showNotification(result.error || 'Failed to update', 'error');
+                }
+            } catch (e) {
+                showNotification('Failed to update subscription', 'error');
+            }
+        }
+
+        // Add email
+        document.getElementById('add-email-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('new-email').value.trim();
+
+            if (!email) return;
+
+            try {
+                const result = await api('add_email', { email });
+                if (result.success) {
+                    showNotification('Email added!', 'success');
+                    document.getElementById('new-email').value = '';
+                    loadEmails();
+                } else {
+                    showNotification(result.error || 'Failed to add email', 'error');
+                }
+            } catch (e) {
+                showNotification('Failed to add email', 'error');
+            }
+        });
+
+        // Remove email
+        async function removeEmail(email) {
+            if (!confirm(`Remove ${email} from recipients?`)) return;
+
+            try {
+                const result = await api('remove_email', { email });
+                if (result.success) {
+                    showNotification('Email removed', 'success');
+                    loadEmails();
+                } else {
+                    showNotification(result.error || 'Failed to remove email', 'error');
+                }
+            } catch (e) {
+                showNotification('Failed to remove email', 'error');
+            }
+        }
+
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>

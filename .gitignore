@@ -1,0 +1,14 @@
+# Environment file (contains passwords)
+.env
+
+# Data files (user-specific)
+data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
