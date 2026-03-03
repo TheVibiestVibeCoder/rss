@@ -39,9 +39,15 @@ return [
         'to'   => getenv('EMAIL_TO') ?: 'your@email.com',
         'from' => getenv('EMAIL_FROM') ?: 'alerts@yourdomain.com',
     ],
-    'admin_password' => getenv('ADMIN_PASSWORD') ?: 'changeme123',
-    'cron_key'       => getenv('CRON_KEY') ?: 'change_this_to_random_string',
-    'timezone'       => getenv('TIMEZONE') ?: 'UTC',
+    'whatsapp' => [
+        // Green API credentials — see https://green-api.com
+        // Leave empty to disable WhatsApp notifications
+        'instance_id' => getenv('GREENAPI_INSTANCE_ID') ?: '',
+        'token'       => getenv('GREENAPI_TOKEN') ?: '',
+    ],
+    'admin_password'  => getenv('ADMIN_PASSWORD') ?: 'changeme123',
+    'cron_key'        => getenv('CRON_KEY') ?: 'change_this_to_random_string',
+    'timezone'        => getenv('TIMEZONE') ?: 'UTC',
     'feeds_file'      => $dataDir . '/feeds.json',
     'last_check_file' => $dataDir . '/last_check.json',
 ];

@@ -15,6 +15,13 @@
  *   POST   /api.php?action=remove_email       - Remove email recipient (email)
  *   POST   /api.php?action=update_subscription - Update email subscription (email, subscribe_all, feeds[])
  *
+ * WhatsApp Endpoints:
+ *   GET    /api.php?action=whatsapp_channels           - List all WhatsApp channels
+ *   POST   /api.php?action=add_whatsapp_channel        - Add channel (chat_id, label)
+ *   POST   /api.php?action=remove_whatsapp_channel     - Remove channel (chat_id)
+ *   POST   /api.php?action=update_whatsapp_subscription - Update subscription (chat_id, subscribe_all, feeds[])
+ *   GET    /api.php?action=whatsapp_status             - Check if Green API credentials are configured
+ *
  * Auth Endpoints:
  *   POST   /api.php?action=login         - Authenticate (password)
  *   GET    /api.php?action=logout        - Logout
@@ -31,6 +38,7 @@ date_default_timezone_set($config['timezone']);
 // Load classes
 require_once __DIR__ . '/classes/FeedManager.php';
 require_once __DIR__ . '/classes/RSSParser.php';
+require_once __DIR__ . '/classes/WhatsAppNotifier.php';
 
 // Initialize
 $manager = new FeedManager($config);
@@ -241,9 +249,83 @@ switch ($action) {
         }
         break;
 
+    // WhatsApp management
+    case 'whatsapp_status':
+        requireAuth();
+        $notifier = new WhatsAppNotifier($config);
+        jsonResponse([
+            'success'    => true,
+            'configured' => $notifier->isConfigured(),
+        ]);
+        break;
+
+    case 'whatsapp_channels':
+        requireAuth();
+        $channels = $manager->getWhatsAppChannels();
+        jsonResponse([
+            'success'  => true,
+            'channels' => $channels,
+            'count'    => count($channels),
+        ]);
+        break;
+
+    case 'add_whatsapp_channel':
+        requireAuth();
+        $chatId = trim($_POST['chat_id'] ?? '');
+        $label  = trim($_POST['label'] ?? '');
+
+        if (empty($chatId) || empty($label)) {
+            jsonResponse(['error' => 'chat_id and label are required'], 400);
+        }
+
+        if ($manager->addWhatsAppChannel($chatId, $label)) {
+            jsonResponse(['success' => true, 'message' => 'WhatsApp channel added']);
+        } else {
+            jsonResponse(['error' => 'Channel already exists or invalid input'], 400);
+        }
+        break;
+
+    case 'remove_whatsapp_channel':
+        requireAuth();
+        $chatId = trim($_POST['chat_id'] ?? '');
+
+        if (empty($chatId)) {
+            jsonResponse(['error' => 'chat_id is required'], 400);
+        }
+
+        if ($manager->removeWhatsAppChannel($chatId)) {
+            jsonResponse(['success' => true, 'message' => 'WhatsApp channel removed']);
+        } else {
+            jsonResponse(['error' => 'Channel not found'], 404);
+        }
+        break;
+
+    case 'update_whatsapp_subscription':
+        requireAuth();
+        $chatId      = trim($_POST['chat_id'] ?? '');
+        $subscribeAll = ($_POST['subscribe_all'] ?? 'true') === 'true';
+        $feeds       = isset($_POST['feeds']) ? json_decode($_POST['feeds'], true) : [];
+
+        if (empty($chatId)) {
+            jsonResponse(['error' => 'chat_id is required'], 400);
+        }
+
+        if (!is_array($feeds)) {
+            $feeds = [];
+        }
+
+        if ($manager->updateWhatsAppSubscription($chatId, $subscribeAll, $feeds)) {
+            jsonResponse(['success' => true, 'message' => 'WhatsApp subscription updated']);
+        } else {
+            jsonResponse(['error' => 'Channel not found'], 404);
+        }
+        break;
+
     default:
         jsonResponse(['error' => 'Invalid action', 'available_actions' => [
             'status', 'login', 'logout', 'list', 'add', 'remove', 'toggle', 'check',
-            'emails', 'add_email', 'remove_email', 'update_subscription'
+            'emails', 'add_email', 'remove_email', 'update_subscription',
+            'whatsapp_status', 'whatsapp_channels', 'add_whatsapp_channel',
+            'remove_whatsapp_channel', 'update_whatsapp_subscription',
         ]], 400);
 }

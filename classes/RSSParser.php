@@ -43,16 +43,19 @@ class RSSParser
         }
 
         $emailsSent = 0;
+        $whatsappSent = 0;
         if (!empty($newItems)) {
-            $emailsSent = $this->sendEmails($newItems);
+            $emailsSent   = $this->sendEmails($newItems);
+            $whatsappSent = $this->sendWhatsAppNotifications($newItems);
         }
 
         return [
-            'checked'    => $checkedCount,
+            'checked'        => $checkedCount,
             'feeds_with_new' => count($newItems),
-            'total_items' => array_sum(array_map(fn($f) => count($f['items']), $newItems)),
-            'errors'     => $errorCount,
-            'emails_sent' => $emailsSent,
+            'total_items'    => array_sum(array_map(fn($f) => count($f['items']), $newItems)),
+            'errors'         => $errorCount,
+            'emails_sent'    => $emailsSent,
+            'whatsapp_sent'  => $whatsappSent,
         ];
     }
 
@@ -129,6 +132,24 @@ class RSSParser
             }
         }
         return $items;
+    }
+
+    /**
+     * Send WhatsApp messages to all configured channels based on their subscriptions
+     * @param array $newItems feedId => ['name' => ..., 'items' => [...]]
+     * @return int Number of messages sent
+     */
+    private function sendWhatsAppNotifications(array $newItems): int
+    {
+        if (empty($this->config['whatsapp']['instance_id']) || empty($this->config['whatsapp']['token'])) {
+            return 0;
+        }
+
+        require_once __DIR__ . '/WhatsAppNotifier.php';
+        $notifier = new WhatsAppNotifier($this->config);
+        $channels = $this->manager->getWhatsAppChannels();
+
+        return $notifier->sendNotifications($newItems, $channels);
     }
 
     /**

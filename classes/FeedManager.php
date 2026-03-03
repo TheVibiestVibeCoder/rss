@@ -7,12 +7,15 @@ class FeedManager
     private string $feedsFile;
     private string $lastCheckFile;
     private string $emailsFile;
+    private string $whatsappFile;
 
     public function __construct(array $config)
     {
-        $this->feedsFile = $config['feeds_file'];
+        $this->feedsFile    = $config['feeds_file'];
         $this->lastCheckFile = $config['last_check_file'];
-        $this->emailsFile = dirname($config['feeds_file']) . '/emails.json';
+        $dataDir = dirname($config['feeds_file']);
+        $this->emailsFile   = $dataDir . '/emails.json';
+        $this->whatsappFile = $dataDir . '/whatsapp.json';
         $this->initFiles();
     }
 
@@ -31,6 +34,9 @@ class FeedManager
         }
         if (!file_exists($this->emailsFile)) {
             file_put_contents($this->emailsFile, json_encode([], JSON_PRETTY_PRINT));
+        }
+        if (!file_exists($this->whatsappFile)) {
+            file_put_contents($this->whatsappFile, json_encode([], JSON_PRETTY_PRINT));
         }
     }
 
@@ -128,6 +134,71 @@ class FeedManager
     private function saveEmails(array $emails): void
     {
         file_put_contents($this->emailsFile, json_encode($emails, JSON_PRETTY_PRINT));
+    }
+
+    // ============ WHATSAPP CHANNEL METHODS ============
+
+    public function getWhatsAppChannels(): array
+    {
+        $content = file_get_contents($this->whatsappFile);
+        return json_decode($content, true) ?: [];
+    }
+
+    /**
+     * @param string $chatId  WhatsApp chat ID, e.g. "1234567890-1234567890@g.us" for groups
+     * @param string $label   Human-readable name shown in the UI
+     */
+    public function addWhatsAppChannel(string $chatId, string $label): bool
+    {
+        $chatId = trim($chatId);
+        $label  = trim($label);
+
+        if (empty($chatId) || empty($label)) {
+            return false;
+        }
+
+        $channels = $this->getWhatsAppChannels();
+        if (isset($channels[$chatId])) {
+            return false; // Already exists
+        }
+
+        $channels[$chatId] = [
+            'label'        => $label,
+            'subscribeAll' => true,
+            'feeds'        => [],
+        ];
+        $this->saveWhatsAppChannels($channels);
+        return true;
+    }
+
+    public function removeWhatsAppChannel(string $chatId): bool
+    {
+        $channels = $this->getWhatsAppChannels();
+        if (!isset($channels[$chatId])) {
+            return false;
+        }
+
+        unset($channels[$chatId]);
+        $this->saveWhatsAppChannels($channels);
+        return true;
+    }
+
+    public function updateWhatsAppSubscription(string $chatId, bool $subscribeAll, array $feeds = []): bool
+    {
+        $channels = $this->getWhatsAppChannels();
+        if (!isset($channels[$chatId])) {
+            return false;
+        }
+
+        $channels[$chatId]['subscribeAll'] = $subscribeAll;
+        $channels[$chatId]['feeds']        = $subscribeAll ? [] : $feeds;
+        $this->saveWhatsAppChannels($channels);
+        return true;
+    }
+
+    private function saveWhatsAppChannels(array $channels): void
+    {
+        file_put_contents($this->whatsappFile, json_encode($channels, JSON_PRETTY_PRINT));
     }
 
     // ============ FEED METHODS ============
