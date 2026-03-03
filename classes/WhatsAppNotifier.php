@@ -1,36 +1,48 @@
 <?php
 /**
- * WhatsAppNotifier - Sends RSS feed updates to WhatsApp groups/channels via Green API
+ * WhatsAppNotifier - Sends RSS feed updates to WhatsApp groups/channels
+ *
+ * Uses a self-hosted whatsapp-web.js bridge (whatsapp-bridge/server.js).
+ * No third-party services or API fees required.
  *
  * Setup:
- *   1. Register at https://green-api.com and create a free instance
- *   2. Scan the QR code in their dashboard to link your WhatsApp account
- *   3. Add GREENAPI_INSTANCE_ID and GREENAPI_TOKEN to your .env file
- *   4. Add your WhatsApp group/channel IDs via the web UI
+ *   1. cd whatsapp-bridge && npm install
+ *   2. node server.js          ← scan the QR code that appears in the terminal
+ *   3. Add WA_BRIDGE_URL and WA_BRIDGE_TOKEN to your .env file
+ *   4. Add WhatsApp group/channel IDs via the web UI
  *
  * Chat ID formats:
- *   - WhatsApp Group:     1234567890-1234567890@g.us  (copy from Green API "Groups" section)
- *   - Individual number:  491234567890@c.us            (country code + number, no +)
+ *   - WhatsApp Group:     1234567890-1234567890@g.us
+ *   - Individual number:  491234567890@c.us  (country code + number, no +)
+ *
+ * To find a group's chat ID:
+ *   Run this once in the bridge directory:
+ *     node -e "
+ *       const {Client,LocalAuth}=require('whatsapp-web.js');
+ *       const c=new Client({authStrategy:new LocalAuth({dataPath:'./session'})});
+ *       c.on('ready',async()=>{const chats=await c.getChats();
+ *         chats.filter(ch=>ch.isGroup).forEach(ch=>console.log(ch.id._serialized,ch.name));
+ *         c.destroy();});
+ *       c.initialize();
+ *     "
  */
 class WhatsAppNotifier
 {
-    private string $instanceId;
-    private string $token;
-    private string $baseUrl;
+    private string $bridgeUrl;
+    private string $bridgeToken;
 
     public function __construct(array $config)
     {
-        $this->instanceId = $config['whatsapp']['instance_id'] ?? '';
-        $this->token      = $config['whatsapp']['token'] ?? '';
-        $this->baseUrl    = 'https://api.green-api.com';
+        $this->bridgeUrl   = rtrim($config['whatsapp']['bridge_url'] ?? '', '/');
+        $this->bridgeToken = $config['whatsapp']['bridge_token'] ?? '';
     }
 
     /**
-     * Returns true if Green API credentials are configured
+     * Returns true if the bridge URL is configured
      */
     public function isConfigured(): bool
     {
-        return !empty($this->instanceId) && !empty($this->token);
+        return !empty($this->bridgeUrl);
     }
 
     /**
@@ -68,28 +80,29 @@ class WhatsAppNotifier
     }
 
     /**
-     * Send a single message to a WhatsApp chat via Green API
+     * Send a single message to a WhatsApp chat via the local bridge
      */
     public function sendMessage(string $chatId, string $message): bool
     {
-        $url = "{$this->baseUrl}/waInstance{$this->instanceId}/sendMessage/{$this->token}";
+        $url     = "{$this->bridgeUrl}/send";
+        $payload = json_encode(['chatId' => $chatId, 'message' => $message]);
 
-        $payload = json_encode([
-            'chatId'  => $chatId,
-            'message' => $message,
-        ]);
+        $headers = ['Content-Type: application/json'];
+        if (!empty($this->bridgeToken)) {
+            $headers[] = "x-auth-token: {$this->bridgeToken}";
+        }
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+            CURLOPT_HTTPHEADER     => $headers,
             CURLOPT_TIMEOUT        => 15,
         ]);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $response  = curl_exec($ch);
+        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
         curl_close($ch);
 
@@ -104,8 +117,8 @@ class WhatsAppNotifier
         }
 
         $data = json_decode($response, true);
-        if (empty($data['idMessage'])) {
-            error_log("WhatsAppNotifier: Unexpected response for chat {$chatId}: {$response}");
+        if (empty($data['success'])) {
+            error_log("WhatsAppNotifier: Bridge error for chat {$chatId}: {$response}");
             return false;
         }
 
@@ -132,7 +145,6 @@ class WhatsAppNotifier
 
             foreach ($items as $item) {
                 $title = strip_tags($item['title']);
-                // Truncate long titles
                 if (strlen($title) > 120) {
                     $title = substr($title, 0, 117) . '...';
                 }

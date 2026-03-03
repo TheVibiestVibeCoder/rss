@@ -40,10 +40,10 @@ return [
         'from' => getenv('EMAIL_FROM') ?: 'alerts@yourdomain.com',
     ],
     'whatsapp' => [
-        // Green API credentials — see https://green-api.com
+        // Self-hosted bridge URL — see whatsapp-bridge/server.js
         // Leave empty to disable WhatsApp notifications
-        'instance_id' => getenv('GREENAPI_INSTANCE_ID') ?: '',
-        'token'       => getenv('GREENAPI_TOKEN') ?: '',
+        'bridge_url'   => getenv('WA_BRIDGE_URL') ?: '',   // e.g. http://127.0.0.1:3030
+        'bridge_token' => getenv('WA_BRIDGE_TOKEN') ?: '', // must match WA_BRIDGE_TOKEN in bridge
     ],
     'admin_password'  => getenv('ADMIN_PASSWORD') ?: 'changeme123',
     'cron_key'        => getenv('CRON_KEY') ?: 'change_this_to_random_string',

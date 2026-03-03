@@ -141,7 +141,7 @@ class RSSParser
      */
     private function sendWhatsAppNotifications(array $newItems): int
     {
-        if (empty($this->config['whatsapp']['instance_id']) || empty($this->config['whatsapp']['token'])) {
+        if (empty($this->config['whatsapp']['bridge_url'])) {
             return 0;
         }
 

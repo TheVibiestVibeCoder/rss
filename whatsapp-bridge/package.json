@@ -1,0 +1,17 @@
+{
+  "name": "whatsapp-bridge",
+  "version": "1.0.0",
+  "description": "Self-hosted WhatsApp bridge for RSS Feed Manager",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

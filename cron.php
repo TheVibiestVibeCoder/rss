@@ -50,5 +50,6 @@ echo "  - Feeds checked: {$result['checked']}\n";
 echo "  - Feeds with new items: {$result['feeds_with_new']}\n";
 echo "  - Total new items: {$result['total_items']}\n";
 echo "  - Errors: {$result['errors']}\n";
-echo "  - Email sent: " . ($result['email_sent'] ? 'Yes' : 'No') . "\n";
+echo "  - Emails sent: {$result['emails_sent']}\n";
+echo "  - WhatsApp messages sent: {$result['whatsapp_sent']}\n";
 echo "[{$timestamp}] Done.\n";
